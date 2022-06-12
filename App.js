@@ -3,15 +3,35 @@ import { async } from '@firebase/util';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { AsyncStorage, Button, StyleSheet, Text, TextInput, View, YellowBox } from 'react-native';
+import { GiftedChat } from 'react-native-gifted-chat';
+import { db } from './src/firebase';
+import 'firebase/firestore'
 
 YellowBox.ignoreWarnings(['Setting a timer for a long period of time']);
+
 
 const App = () => {
   const [user, setUser] = useState(null);
   const [name, setName] = useState('');
+  const [messages, setMessages] = useState();
+  if (db === undefined) {
+    console.log('DB is not ready....');
+  }
+    const chatRef = db.collection('chats');  
+
 
   useEffect(() => { 
     readUser();
+     const unsubscriber = chatRef.onSnapshot((querySnapshot) => {
+       const messageFirestore = querySnapshot.doChanges()
+         .filter(({ type }) => type === 'added')
+        .map(({ doc }) => {
+          const message = doc.data();
+          return {
+            ...message, createdAt: message.createdAt.toDate()}
+        }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+       setMessages(messageFirestore);
+    });  
   }, []);
 
   async function readUser() {
@@ -28,6 +48,11 @@ const App = () => {
     await AsyncStorage.setItem('user', JSON.stringify(user));
     setUser(user);
   }
+
+  async function handleSend(messages) {
+    const writes = messages.map(m => chatRef.add(m))
+    await Promise.all(writes)
+  }
     if (!user) {
       return (
         <View style={styles.container}>
@@ -43,10 +68,7 @@ const App = () => {
   
   
   return (
-    <View style={styles.container}>
-      <Text>We have user here!</Text>
-      <StatusBar style="auto" />
-    </View>
+      <GiftedChat messages={ messages } user={user} onSend={handleSend} />
   );
 }
 
