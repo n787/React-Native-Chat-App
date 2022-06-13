@@ -2,10 +2,11 @@
 import { async } from '@firebase/util';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
-import { AsyncStorage, Button, StyleSheet, Text, TextInput, View, LogBox } from 'react-native';
+import { Button, StyleSheet, Text, TextInput, View, LogBox } from 'react-native';
 import { GiftedChat } from 'react-native-gifted-chat';
 //import { db } from './src/firebase';
 import * as firebase from 'firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 //LogBox.ignoreWarnings(['Setting a timer for a long period of time']);
@@ -19,7 +20,7 @@ const firebaseConfig = {
   appId: "1:90988010737:web:d6e982216c4d871bb1dd50"
 };
 
-if (!firebase.apps.lenght) {
+if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 } else {
   firebase.app();
@@ -51,7 +52,7 @@ const App = () => {
        const unsubscribe = chatRef.onSnapshot(querySnapshot => {
          setMessages(
            querySnapshot.docs.map(doc => ({
-             id: doc.data().id,
+             _id: doc.data()._id,
              createdAt: doc.data().createdAt.toDate(),
              text: doc.data().text,
              user: doc.data().user
@@ -66,7 +67,7 @@ const App = () => {
     setMessages(previousMessages =>
       GiftedChat.append(previousMessages, messages)
     );
-    const { id, createdAt, text, user } = messages[0];    
+    const { _id, createdAt, text, user } = messages[0];    
    /* addDoc(chatRef, {
       id,
       createdAt,
@@ -74,7 +75,7 @@ const App = () => {
       user
     }); */
     chatRef.add({
-      id: id,
+      _id: _id,
       createdAt: createdAt,
       text: text,
       user: user
@@ -110,7 +111,6 @@ const App = () => {
         </View>
       );
   }
-  
   
   return (
     <GiftedChat messages={messages}
