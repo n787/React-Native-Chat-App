@@ -1,37 +1,86 @@
 //@refresh reset
 import { async } from '@firebase/util';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
-import { AsyncStorage, Button, StyleSheet, Text, TextInput, View, YellowBox } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { AsyncStorage, Button, StyleSheet, Text, TextInput, View, LogBox } from 'react-native';
 import { GiftedChat } from 'react-native-gifted-chat';
-import { db } from './src/firebase';
-import 'firebase/firestore'
+//import { db } from './src/firebase';
+import * as firebase from 'firebase';
 
-YellowBox.ignoreWarnings(['Setting a timer for a long period of time']);
+
+//LogBox.ignoreWarnings(['Setting a timer for a long period of time']);
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA-cqkW440w5Y2exOys3D75h5AeCGLL4To",
+  authDomain: "react-native-chat-app-12077.firebaseapp.com",
+  projectId: "react-native-chat-app-12077",
+  storageBucket: "react-native-chat-app-12077.appspot.com",
+  messagingSenderId: "90988010737",
+  appId: "1:90988010737:web:d6e982216c4d871bb1dd50"
+};
+
+if (!firebase.apps.lenght) {
+  firebase.initializeApp(firebaseConfig);
+} else {
+  firebase.app();
+}
+const db = firebase.firestore();
+
+const chatRef = db.collection('chats');  
 
 
 const App = () => {
   const [user, setUser] = useState(null);
   const [name, setName] = useState('');
-  const [messages, setMessages] = useState();
-  if (db === undefined) {
-    console.log('DB is not ready....');
-  }
-    const chatRef = db.collection('chats');  
-
-
-  useEffect(() => { 
+  const [messages, setMessages] = useState([]); 
+  
+  useEffect(() => {
     readUser();
-     const unsubscriber = chatRef.onSnapshot((querySnapshot) => {
+    /* const unsubscriber = chatRef.onSnapshot((querySnapshot) => {
        const messageFirestore = querySnapshot.doChanges()
          .filter(({ type }) => type === 'added')
-        .map(({ doc }) => {
-          const message = doc.data();
-          return {
-            ...message, createdAt: message.createdAt.toDate()}
-        }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-       setMessages(messageFirestore);
-    });  
+         .map(({ doc }) => {
+           const message = doc.data();
+           return {
+             ...message, createdAt: message.createdAt.toDate()
+           }
+         }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      setMessages(messageFirestore);
+    }); */
+         
+       const unsubscribe = chatRef.onSnapshot(querySnapshot => {
+         setMessages(
+           querySnapshot.docs.map(doc => ({
+             id: doc.data().id,
+             createdAt: doc.data().createdAt.toDate(),
+             text: doc.data().text,
+             user: doc.data().user
+           }))
+         );
+       });
+   
+       return () => unsubscribe(); 
+  }, []);  
+  
+  const onSend = useCallback((messages = []) => {
+    setMessages(previousMessages =>
+      GiftedChat.append(previousMessages, messages)
+    );
+    const { id, createdAt, text, user } = messages[0];    
+   /* addDoc(chatRef, {
+      id,
+      createdAt,
+      text,
+      user
+    }); */
+    chatRef.add({
+      id: id,
+      createdAt: createdAt,
+      text: text,
+      user: user
+    }).then(() => {
+      console.log('message added!');
+    });
   }, []);
 
   async function readUser() {
@@ -48,12 +97,8 @@ const App = () => {
     await AsyncStorage.setItem('user', JSON.stringify(user));
     setUser(user);
   }
-
-  async function handleSend(messages) {
-    const writes = messages.map(m => chatRef.add(m))
-    await Promise.all(writes)
-  }
-    if (!user) {
+  
+  if (!user) {
       return (
         <View style={styles.container}>
           <TextInput style={styles.input} 
@@ -64,11 +109,15 @@ const App = () => {
           <Button style={styles.btnStart} title='Start Chat' onPress={handleOnPress}/>
         </View>
       );
-    }
+  }
   
   
   return (
-      <GiftedChat messages={ messages } user={user} onSend={handleSend} />
+    <GiftedChat messages={messages}
+      showAvatarForEveryMessage={true}
+      user={user}
+      onSend={messages => onSend(messages)} 
+    />
   );
 }
 

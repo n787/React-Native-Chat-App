@@ -5,6 +5,7 @@ import firebase from 'firebase';
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
+/*
 const firebaseConfig = {
   apiKey: "AIzaSyA-cqkW440w5Y2exOys3D75h5AeCGLL4To",
   authDomain: "react-native-chat-app-12077.firebaseapp.com",
@@ -15,7 +16,10 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const db = app.firestore();
+const app = firebase.initializeApp(firebaseConfig);  
+const db = firebase.firestore();
 
+//console.log("db name: ", db.collection('databseForChats'));
 export default db;
+
+*/
